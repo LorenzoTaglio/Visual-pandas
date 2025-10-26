@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 import os
 import pandas as pd
 import uuid
-from src.convert_df import df_html
+from src.dataframe import VisualDataframe
+import os
+
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
@@ -31,7 +33,7 @@ def ensure_session_id():
 
 @app.route('/')
 def index():        
-    return render_template('test.html')
+    return render_template('index.html')
     
     
 
@@ -39,9 +41,12 @@ def index():
 def get_df():
     dfs = sessions_dataframes[session["session_id"]]
     return jsonify({
-        'html': {
-            str(df_id): df_html(df, df_id) for df_id, df in dfs.items()
-        },
+        'success': True,
+        'dataframes': [{
+            "id": df.df_id,
+            "name": df.title,
+            "html": df.df_html()
+        }for _, df in dfs.items()]
     })
     
 @app.post("/add_column")
@@ -53,19 +58,20 @@ def add_column():
     
     return jsonify({
         'success': True,
-        'html': df_html(df)
+        'html': " "
     })
     
-@app.post("/update_cell/")
+@app.post("/update_cell")
 def modify_cell():
-    df: pd.DataFrame = sessions_dataframes[session["session_id"]]
     data = request.get_json()
+    df_id = uuid.UUID(data.get("df_id"))
+    df: VisualDataframe = sessions_dataframes[session["session_id"]][df_id]
     print(data.get("value"))
     df.at[int(data.get("row")) ,data.get("column")] = data.get("value")
     
     return jsonify({
         'success': True,
-        'html': df_html(df)
+        'html': df.df_html()
     })
     
     
@@ -75,7 +81,7 @@ def add_row():
     df.loc[len(df)] = [None for _ in df.columns]
     return jsonify({
         'success': True,
-        'html': df_html(df)
+        'html': " "
     })
     
 @app.get("/columns_len")
@@ -96,10 +102,12 @@ def import_df():
     while df_id in sessions_dataframes[session["session_id"]]:
         df_id = uuid.uuid4()
 
-    sessions_dataframes[session["session_id"]][df_id] = pd.read_csv(df_file)
+    visual_df = VisualDataframe(df_id, df_file.filename, pd.read_csv(df_file))
+    sessions_dataframes[session["session_id"]][df_id] = visual_df
+    
     return jsonify({
         'success': True,
         'df_id': df_id,
-        'name': df_file.name.split('.')[0],
-        'html': df_html(sessions_dataframes[session["session_id"]][df_id], df_id)
+        'name': visual_df.title,
+        'html': visual_df.df_html()
     })

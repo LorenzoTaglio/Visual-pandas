@@ -1,13 +1,15 @@
+const dataframes = document.querySelector(".dataframes");
+
 document.addEventListener('DOMContentLoaded', function() {
     loadDataFrame();
 });
 
-// document.querySelector(".pandas").addEventListener("keydown", function(event){
-//     if (event.target.classList.contains("cell") && event.key === "Enter"){
-//         event.preventDefault();
-//         updateCell(event.target);
-//     }
-// })
+document.querySelector(".dataframes").addEventListener("keydown", function(event){
+    if (event.target.classList.contains("cell") && event.key === "Enter"){
+        event.preventDefault();
+        updateCell(event.target);
+    }
+})
 //     
 // document.querySelector("#addCol").addEventListener("click", function(){
 //     // Remove previous instances of momentary input
@@ -33,6 +35,37 @@ document.querySelector("#importDf").addEventListener("change", function(event){
     importDataFrame(event);
 })
 
+function addDataframe(df_id,df_name, df_html){
+    // Create wrapper
+    const newDf = document.createElement("div");
+    newDf.id = df_id;
+    newDf.classList.add("pandas");
+    newDf.setAttribute('data-df-id', df_id);
+
+    // Add name
+    const dfName = document.createElement("h2");
+    dfName.innerText = df_name;
+    newDf.appendChild(dfName);
+    
+    // Df table
+    const dfTable = document.createElement("div");
+    dfTable.classList.add("table");
+    dfTable.innerHTML = df_html;
+    newDf.appendChild(dfTable);
+    // Add col btn
+    const addColBtn = document.createElement("button");
+    addColBtn.classList.add("addCol");
+    addColBtn.innerText = "Add Column";
+    newDf.appendChild(addColBtn);
+    // Add row btn
+    const addRowBtn = document.createElement("button");
+    addRowBtn.classList.add("addRow");
+    addRowBtn.innerText = "AddRow";
+    newDf.appendChild(addRowBtn);
+
+    dataframes.appendChild(newDf);
+}
+
 function importDataFrame(event){
     const file = event.target.files[0];
     const formData = new FormData();
@@ -50,36 +83,7 @@ function importDataFrame(event){
     })
     .then(data => {
         if(data.success){
-            // Create wrapper
-            const newDf = document.createElement("div");
-            newDf.id = data.df_id
-            newDf.classList.add("pandas");
-
-            // Add name
-            const dfName = document.createElement("h2");
-            dfName.innerText = data.name;
-            newDf.appendChild(dfName);
-            
-            // Df table
-            const dfTable = document.createElement("div");
-            dfTable.classList.add("table");
-            dfTable.innerHTML = data.html;
-            newDf.appendChild(dfTable);
-
-            // Add col btn
-            const addColBtn = document.createElement("button");
-            addColBtn.classList.add("addCol");
-            addColBtn.innerText = "Add Column";
-            newDf.appendChild(addColBtn);
-
-            // Add row btn
-            const addRowBtn = document.createElement("button");
-            addRowBtn.classList.add("addRow");
-            addRowBtn.innerText = "AddRow";
-            newDf.appendChild(addRowBtn);
-        
-
-            document.body.appendChild(newDf);
+            addDataframe(data.df_id, data.name, data.html);
         }
     })
 }
@@ -109,7 +113,12 @@ function loadDataFrame(){
     .then(response => response.json())
     .then(data =>{
         // document.querySelector(".pandas").innerHTML = data.html;
-        console.log(data.html);
+        console.log(data)
+        if(data.success && data.dataframes.length > 0){
+            data.dataframes.forEach(df => {
+                addDataframe(df.id, df.name, df.html)
+            });
+        }
     })
     .catch(error=>{
         alert("Errore");
@@ -120,13 +129,14 @@ function loadDataFrame(){
 
 function updateCell(cell){
     const cellId = cell.id;
-    const [column, row] = cellId.split("_");
+    const [df_id, column, row] = cellId.split("_");
     fetch("/update_cell",{
         method: "POST",
         headers : {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+            df_id: df_id,
             column: column,
             row: row,
             value: cell.value
@@ -139,7 +149,7 @@ function updateCell(cell){
     })
     .then(data => {
         if(data.success){
-            document.querySelector(".pandas").innerHTML = data.html;
+            document.querySelector(`[data-df-id= "${df_id}"] .table`).innerHTML = data.html;
         }
     })
 }
