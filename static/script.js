@@ -2,32 +2,32 @@ document.addEventListener('DOMContentLoaded', function() {
     loadDataFrame();
 });
 
-document.querySelector(".pandas").addEventListener("keydown", function(event){
-    if (event.target.classList.contains("cell") && event.key === "Enter"){
-        event.preventDefault();
-        updateCell(event.target);
-    }
-})
-    
-document.querySelector("#addCol").addEventListener("click", function(){
-    // Remove previous instances of momentary input
-    if (document.querySelector(".newInsert")){
-        document.querySelector(".dataframe thead th:has(.newInsert)").remove();
-    }
-    addColumn();
-})
-
-document.querySelector("#addRow").addEventListener("click", async function(){
-    if (document.querySelector(".newInsert")){
-        document.querySelector(".dataframe thead th:has(.newInsert)").remove();
-    }
-
-    if (await columnsLen() < 1){
-        console.log("No columns detected");
-        return;
-    }
-    await addRow();
-});
+// document.querySelector(".pandas").addEventListener("keydown", function(event){
+//     if (event.target.classList.contains("cell") && event.key === "Enter"){
+//         event.preventDefault();
+//         updateCell(event.target);
+//     }
+// })
+//     
+// document.querySelector("#addCol").addEventListener("click", function(){
+//     // Remove previous instances of momentary input
+//     if (document.querySelector(".newInsert")){
+//         document.querySelector(".dataframe thead th:has(.newInsert)").remove();
+//     }
+//     addColumn();
+// })
+// 
+// document.querySelector("#addRow").addEventListener("click", async function(){
+//     if (document.querySelector(".newInsert")){
+//         document.querySelector(".dataframe thead th:has(.newInsert)").remove();
+//     }
+// 
+//     if (await columnsLen() < 1){
+//         console.log("No columns detected");
+//         return;
+//     }
+//     await addRow();
+// });
 
 document.querySelector("#importDf").addEventListener("change", function(event){
     importDataFrame(event);
@@ -50,7 +50,36 @@ function importDataFrame(event){
     })
     .then(data => {
         if(data.success){
-            document.querySelector(".pandas").innerHTML = data.html;
+            // Create wrapper
+            const newDf = document.createElement("div");
+            newDf.id = data.df_id
+            newDf.classList.add("pandas");
+
+            // Add name
+            const dfName = document.createElement("h2");
+            dfName.innerText = data.name;
+            newDf.appendChild(dfName);
+            
+            // Df table
+            const dfTable = document.createElement("div");
+            dfTable.classList.add("table");
+            dfTable.innerHTML = data.html;
+            newDf.appendChild(dfTable);
+
+            // Add col btn
+            const addColBtn = document.createElement("button");
+            addColBtn.classList.add("addCol");
+            addColBtn.innerText = "Add Column";
+            newDf.appendChild(addColBtn);
+
+            // Add row btn
+            const addRowBtn = document.createElement("button");
+            addRowBtn.classList.add("addRow");
+            addRowBtn.innerText = "AddRow";
+            newDf.appendChild(addRowBtn);
+        
+
+            document.body.appendChild(newDf);
         }
     })
 }
@@ -79,7 +108,8 @@ function loadDataFrame(){
     fetch('/get_df')
     .then(response => response.json())
     .then(data =>{
-        document.querySelector(".pandas").innerHTML = data.html;
+        // document.querySelector(".pandas").innerHTML = data.html;
+        console.log(data.html);
     })
     .catch(error=>{
         alert("Errore");

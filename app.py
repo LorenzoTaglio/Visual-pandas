@@ -25,9 +25,9 @@ def ensure_session_id():
     # testdf=pd.DataFrame({"a":pd.Series([1,2,3,4]),"b":["eenie","meenie","money", "moo"]})
     if "session_id" not in session:
         session["session_id"] = str(uuid.uuid4())
-        sessions_dataframes[session["session_id"]] = pd.DataFrame({})
+        sessions_dataframes[session["session_id"]] = {}
     if session["session_id"] not in sessions_dataframes.keys():
-        sessions_dataframes[session["session_id"]] = pd.DataFrame({})
+        sessions_dataframes[session["session_id"]] = {}
 
 @app.route('/')
 def index():        
@@ -37,10 +37,11 @@ def index():
 
 @app.get("/get_df")
 def get_df():
-    df: pd.DataFrame = sessions_dataframes[session["session_id"]]
+    dfs = sessions_dataframes[session["session_id"]]
     return jsonify({
-        'html': df_html(df),
-        'columns': list(df.columns)
+        'html': {
+            str(df_id): df_html(df, df_id) for df_id, df in dfs.items()
+        },
     })
     
 @app.post("/add_column")
@@ -90,9 +91,15 @@ def columns_len():
 @app.post("/import_dataframe")
 def import_df():
     df_file = request.files['file']
-    print(request.files)
-    sessions_dataframes[session["session_id"]] = pd.read_csv(df_file)
+    df_id = uuid.uuid4()
+    
+    while df_id in sessions_dataframes[session["session_id"]]:
+        df_id = uuid.uuid4()
+
+    sessions_dataframes[session["session_id"]][df_id] = pd.read_csv(df_file)
     return jsonify({
         'success': True,
-        'html': df_html(sessions_dataframes[session["session_id"]])
+        'df_id': df_id,
+        'name': df_file.name.split('.')[0],
+        'html': df_html(sessions_dataframes[session["session_id"]][df_id], df_id)
     })
